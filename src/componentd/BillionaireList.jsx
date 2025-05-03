@@ -14,10 +14,18 @@ export default function BillionaireList() {
   });
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const companiesPerPage = 10;
 
   useEffect(() => {
     fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when search term changes
+  }, [searchTerm]);
 
   const fetchCompanies = async () => {
     try {
@@ -80,9 +88,31 @@ export default function BillionaireList() {
     setShowForm(true);
   };
 
+  // Filter companies based on search
+  const filteredCompanies = companies.filter((company) =>
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.headquarter.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Pagination calculations
+  const indexOfLastCompany = currentPage * companiesPerPage;
+  const indexOfFirstCompany = indexOfLastCompany - companiesPerPage;
+  const currentCompanies = filteredCompanies.slice(indexOfFirstCompany, indexOfLastCompany);
+  const totalPages = Math.ceil(filteredCompanies.length / companiesPerPage);
+
   return (
     <div className="max-w-6xl mx-auto p-8">
       <h1 className="text-3xl font-semibold text-center mb-8">Top Bangladeshi Companies</h1>
+
+      {/* Search Bar */}
+      <input
+        type="text"
+        placeholder="Search by name, sector, or headquarter..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full mb-6 p-4 border border-gray-300 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
 
       {!showForm && (
         <button
@@ -100,7 +130,9 @@ export default function BillionaireList() {
         >
           {["name", "sector", "logo", "headquarter", "founded"].map((field) => (
             <div key={field} className="flex flex-col">
-              <label className="text-gray-700 font-semibold mb-2">{field.charAt(0).toUpperCase() + field.slice(1)}</label>
+              <label className="text-gray-700 font-semibold mb-2">
+                {field.charAt(0).toUpperCase() + field.slice(1)}
+              </label>
               <input
                 name={field}
                 value={form[field]}
@@ -152,12 +184,13 @@ export default function BillionaireList() {
             </tr>
           </thead>
           <tbody>
-            {companies.map((company) => (
+            {currentCompanies.map((company) => (
               <tr key={company.id} className="hover:bg-gray-50 transition duration-300">
                 <td className="border px-4 py-6">
                   <img
                     src={company.logo}
-                    alt="logo"
+                    alt={`${company.name} logo`}
+                    referrerPolicy="no-referrer"
                     className="w-16 h-16 object-contain mx-auto"
                   />
                 </td>
@@ -181,8 +214,34 @@ export default function BillionaireList() {
                 </td>
               </tr>
             ))}
+            {filteredCompanies.length === 0 && (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-gray-500">
+                  No companies found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-6 space-x-2 p-4">
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-4 py-2 rounded-lg border ${
+                  currentPage === i + 1
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
